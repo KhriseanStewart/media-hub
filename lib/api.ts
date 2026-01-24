@@ -6,6 +6,12 @@ export interface Tag {
   value: string;
 }
 
+export interface MetaData {
+  author: string;
+  published: Date;
+  category: string;
+}
+
 export interface Content {
   documentId: string;
   id: number;
@@ -18,6 +24,28 @@ export interface Content {
   publishedAt: string;
   link: string;
 }
+
+export interface ContentBlock {
+  type: string;
+  children: {
+    text: string;
+  }[];
+}
+
+
+export interface Article {
+  id: number;
+  documentId: string;
+  title: string;
+  slug: string;
+  body: ContentBlock[]; // NOT string
+  excerpt: string;
+  createdAt: string;
+  publishedAt: string;
+  coverImage?: Media | null;
+  metadata?: MetaData
+}
+
 
 interface Media {
   id: number;
@@ -51,8 +79,16 @@ interface StrapiContentItem {
   link?: string;
 }
 
+interface StrapiArticleData{
+  
+}
+
 interface StrapiContentResponse {
   data: StrapiContentItem[];
+}
+
+interface StrapiArticleResponse{
+  data: Article[]
 }
 
 const API_BASE_URL =
@@ -95,66 +131,28 @@ export async function fetchContentBySlug(
   return allContent.find((item) => item.slug === slug) || null;
 }
 
-// export async function fetchContent(
-//   contentType?: ContentType
-// ): Promise<Content[]> {
-//   const url = new URL(`${API_BASE_URL}/api/podcast-demos`)
-//   url.searchParams.set("populate", "media")
+export async function fetchArticle(){
+  let response = await fetch(`${API_BASE_URL}article-demos?populate=*`);
 
-//   if (contentType) {
-//     url.searchParams.set(
-//       "filters[contenttype][$eq]",
-//       contentType
-//     )
-//   }
+  // Properly get JSON data from the response
+  let res = await response.json();
 
-//   const res = await fetch(url.toString(), { cache: "no-store" })
+  let article: Article[] = res.data.map((item: any) => ({
+    id: item.id,
+    documentId: item.documentId,
+    title: item.title,
+    body: item.body,
+    createdAt: item.createdAt,
+    publishedAt: item.publshedAt,
+    slug: item.slug,
+    excerpt: item.excerpt,
+    coverImage: item.coverImage ? {...item.coverImage, url: `${process.env.NEXT_PUBLIC_STRAPI_MEDIA_URL}${item.coverImage.url}`  } : null,
+    metadata: {
+      author: item.MetaData?.author,
+      published: item.MetaData?.published,
+      category: item.MetaData?.category,
+    }
+  }));
 
-//   if (!res.ok) {
-//     throw new Error("Failed to fetch content")
-//   }
-
-//   const json: StrapiContentResponse = await res.json()
-
-//   return json.data.map((item) => ({
-//     id: item.id,
-//     title: item.attributes.title,
-//     slug: item.attributes.slug,
-//     description: item.attributes.description,
-//     contentType: item.attributes.contenttype,
-//     tags: item.attributes.tags,
-//     publishedAt: item.attributes.publishedAt,
-//     mediaUrl: item.attributes.media?.data
-//       ? `${API_BASE_URL}${item.attributes.media.data.attributes.url}`
-//       : undefined,
-//   }))
-// }
-
-// export async function fetchContentBySlug(
-//   slug: string
-// ): Promise<Content | null> {
-//   const url = new URL(`${API_BASE_URL}/api/podcast-demos`)
-//   url.searchParams.set("populate", "media")
-//   url.searchParams.set("filters[slug][$eq]", slug)
-
-//   const res = await fetch(url.toString(), { cache: "no-store" })
-//   if (!res.ok) return null
-
-//   const json: StrapiContentResponse = await res.json()
-//   const item = json.data[0]
-
-//   if (!item) return null
-
-//   return {
-//     id: item.id,
-//     title: item.attributes.title,
-//     slug: item.attributes.slug,
-//     description: item.attributes.description,
-//     contentType: item.attributes.contenttype,
-//     tags: item.attributes.tags,
-//     publishedAt: item.attributes.publishedAt,
-//     mediaUrl: item.attributes.media?.data
-//       ? `${API_BASE_URL}${item.attributes.media.data.attributes.url}`
-//       : undefined,
-//   }
-// }
+  return article;
+}

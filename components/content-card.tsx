@@ -46,7 +46,7 @@ export function ContentCard({ content }: ContentCardProps) {
           <Edit className="" onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
-              router.push(`/creation/${content.documentId}/edit`);
+              router.push(`/creation/school-posts/${content.documentId}/edit`);
             }}/>
         </div>
       </div>

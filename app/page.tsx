@@ -1,8 +1,10 @@
-import { fetchContent } from "@/lib/api"
+import { fetchArticle, fetchContent } from "@/lib/api"
 import { ContentGrid } from "@/components/content-grid"
+import ArticleGrid from "@/components/Article-grid";
 
 export default async function HomePage() {
-  const content = await fetchContent()
+  const content = await fetchContent();
+  const article = await fetchArticle()
 
   return (
     <main className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
@@ -16,6 +18,9 @@ export default async function HomePage() {
       </div>
 
       <ContentGrid content={content} />
+      <br />
+      <br />
+      <ArticleGrid article={article} />
     </main>
   )
 }
