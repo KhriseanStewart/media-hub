@@ -10,12 +10,11 @@ interface MediumArticleCardProps {
 export default function ArticleCard({ article }: MediumArticleCardProps) {
   return (
     <Link
-      href={`/articles/${article.slug}`}
+      href={`/articles/${article.documentId}`}
       className="flex flex-col max-w-md overflow-hidden rounded-lg hover:bg-muted/40 transition"
     >
       {/* Image */}
       <div className="relative w-full h-96 overflow-hidden">
-        <h2>Hello</h2>
         <Image
           src={article.coverImage?.url ?? "/placeholder.png"}
           alt={article.title}

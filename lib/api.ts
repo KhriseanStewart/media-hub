@@ -156,3 +156,48 @@ export async function fetchArticle(){
 
   return article;
 }
+
+export async function fetchArticleByDocumentId(documentId: string): Promise<Article | null> {
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}article-demos/${documentId}?populate=*`,
+      { cache: "no-store" }
+    );
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const res = await response.json();
+    const item = res.data;
+
+    if (!item) {
+      return null;
+    }
+
+    const article: Article = {
+      id: item.id,
+      documentId: item.documentId,
+      title: item.title,
+      body: item.body,
+      createdAt: item.createdAt,
+      publishedAt: item.publishedAt,
+      slug: item.slug,
+      excerpt: item.excerpt,
+      coverImage: item.coverImage ? {
+        ...item.coverImage,
+        url: `${process.env.NEXT_PUBLIC_STRAPI_MEDIA_URL}${item.coverImage.url}`
+      } : null,
+      metadata: {
+        author: item.MetaData?.author,
+        published: item.MetaData?.published,
+        category: item.MetaData?.category,
+      }
+    };
+
+    return article;
+  } catch (error) {
+    console.error("Error fetching article:", error);
+    return null;
+  }
+}

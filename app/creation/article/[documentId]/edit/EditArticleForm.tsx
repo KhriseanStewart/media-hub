@@ -1,47 +1,75 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Upload, X, Tag, Calendar, User, FileText, ImageIcon } from "lucide-react"
 import { useRouter } from "next/navigation"
 
-const API_URL = "/api/article/create"
+interface ArticleData {
+  title: string
+  slug: string
+  excerpt: string
+  body: string
+  author: string
+  category: string
+  published: string
+  tags: string[]
+  coverImageUrl: string
+}
 
-export default function CreateArticlePage() {
+interface EditArticleFormProps {
+  documentId: string
+  article: ArticleData
+}
+
+export default function EditArticleForm({ documentId, article }: EditArticleFormProps) {
   const router = useRouter()
-  
+
   // Form state
-  const [title, setTitle] = useState("")
-  const [slug, setSlug] = useState("")
-  const [excerpt, setExcerpt] = useState("")
-  const [author, setAuthor] = useState("")
-  const [category, setCategory] = useState("")
-  const [published, setPublished] = useState("")
-  const [body, setBody] = useState("")
+  const [title, setTitle] = useState(article.title)
+  const [slug, setSlug] = useState(article.slug)
+  const [excerpt, setExcerpt] = useState(article.excerpt)
+  const [author, setAuthor] = useState(article.author)
+  const [category, setCategory] = useState(article.category)
+  const [published, setPublished] = useState(article.published)
+  const [body, setBody] = useState(article.body)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  
+
   // Tags state
-  const [tags, setTags] = useState<string[]>([])
+  const [tags, setTags] = useState<string[]>(article.tags)
   const [tagInput, setTagInput] = useState("")
-  
+
   // Image state
   const [coverImage, setCoverImage] = useState<File | null>(null)
-  const [previewUrl, setPreviewUrl] = useState<string>("")
+  const [previewUrl, setPreviewUrl] = useState<string>(article.coverImageUrl || "")
+
+  useEffect(() => {
+    // Cleanup preview URL on unmount
+    return () => {
+      if (previewUrl && previewUrl.startsWith("blob:")) {
+        URL.revokeObjectURL(previewUrl)
+      }
+    }
+  }, [previewUrl])
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
       setCoverImage(file)
       const url = URL.createObjectURL(file)
+      // Revoke old URL if it was a blob
+      if (previewUrl && previewUrl.startsWith("blob:")) {
+        URL.revokeObjectURL(previewUrl)
+      }
       setPreviewUrl(url)
     }
   }
 
   const removeImage = () => {
     setCoverImage(null)
-    if (previewUrl) {
+    if (previewUrl && previewUrl.startsWith("blob:")) {
       URL.revokeObjectURL(previewUrl)
     }
-    setPreviewUrl("")
+    setPreviewUrl(article.coverImageUrl || "")
   }
 
   const addTag = () => {
@@ -74,28 +102,10 @@ export default function CreateArticlePage() {
     return true
   }
 
-  const resetForm = () => {
-    setTitle("")
-    setSlug("")
-    setExcerpt("")
-    setBody("")
-    setAuthor("")
-    setCategory("")
-    setPublished("")
-    setTags([])
-    setCoverImage(null)
-    setPreviewUrl("")
-  }
-
-  const handleSubmit = async (e: React.FormEvent | React.MouseEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
     if (!validateForm()) {
-      return
-    }
-
-    if (!coverImage) {
-      alert("Please upload a cover image")
       return
     }
 
@@ -134,13 +144,15 @@ export default function CreateArticlePage() {
       formData.append("slug", slug)
       formData.append("excerpt", excerpt || "")
       formData.append("body", JSON.stringify(bodyArray))
-      formData.append("coverImage", coverImage)
+      if (coverImage) {
+        formData.append("coverImage", coverImage)
+      }
       formData.append("metadata", JSON.stringify(metadataObj))
       formData.append("tags", tags.join(","))
 
-      // Submit article
-      const res = await fetch(API_URL, {
-        method: "POST",
+      // Update article
+      const res = await fetch(`/api/article/${documentId}`, {
+        method: "PUT",
         body: formData,
       })
 
@@ -148,16 +160,16 @@ export default function CreateArticlePage() {
 
       if (!res.ok) {
         console.error("Error response:", data)
-        alert(`Failed to create article: ${data.error || JSON.stringify(data)}`)
+        alert(`Failed to update article: ${data.error || JSON.stringify(data)}`)
         return
       }
 
-      alert("Article published successfully!")
-      resetForm()
-      router.push("/")
+      alert("Article updated successfully!")
+      router.push(`/articles/${documentId}`)
+      router.refresh()
     } catch (error) {
       console.error("Submit error:", error)
-      alert("An error occurred while publishing")
+      alert("An error occurred while updating")
     } finally {
       setIsSubmitting(false)
     }
@@ -168,9 +180,9 @@ export default function CreateArticlePage() {
       <div className="mx-auto max-w-4xl px-4 py-12">
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-slate-900 mb-2">
-            Create New Article
+            Edit Article
           </h1>
-          <p className="text-slate-600">Share your thoughts with the world</p>
+          <p className="text-slate-600">Update your article information</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -212,6 +224,11 @@ export default function CreateArticlePage() {
                   onChange={handleImageChange}
                 />
               </label>
+            )}
+            {previewUrl && !coverImage && (
+              <p className="text-xs text-slate-500 mt-2">
+                Current image. Upload a new file to replace it.
+              </p>
             )}
           </div>
 
@@ -376,14 +393,14 @@ export default function CreateArticlePage() {
               disabled={isSubmitting}
               className="flex-1 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 px-8 py-4 text-white font-semibold shadow-lg hover:shadow-xl hover:from-blue-700 hover:to-blue-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isSubmitting ? "Publishing..." : "Publish Article"}
+              {isSubmitting ? "Updating..." : "Update Article"}
             </button>
             <button
               type="button"
-              onClick={() => alert("Draft saved!")}
+              onClick={() => router.push(`/articles/${documentId}`)}
               className="px-8 py-4 border-2 border-slate-300 text-slate-700 rounded-xl font-semibold hover:bg-slate-50 transition-colors"
             >
-              Save Draft
+              Cancel
             </button>
           </div>
         </form>
