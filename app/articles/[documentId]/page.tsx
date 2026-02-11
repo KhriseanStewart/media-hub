@@ -43,23 +43,94 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
     }
   }
 
-  // Render article body content
+  // Render article body content with formatting
   const renderBody = () => {
     if (!article.body || !Array.isArray(article.body)) {
       return <p className="text-slate-600">No content available.</p>
     }
 
     return article.body.map((block, index) => {
+      // Type assertion for block with any structure
+      const blockAny = block as any
+
       if (block.type === "paragraph" && block.children) {
         return (
           <p key={index} className="mb-4 text-lg leading-relaxed text-slate-700">
-            {block.children.map((child, childIndex) => {
-              if (child.type === "text") {
-                return <span key={childIndex}>{child.text}</span>
+            {block.children.map((child: any, childIndex: number) => {
+              const text = child.text || ""
+              let content: React.ReactNode = text
+
+              // Apply formatting marks (if they exist)
+              if (child.marks && Array.isArray(child.marks)) {
+                child.marks.forEach((mark: any) => {
+                  if (mark.type === "bold") {
+                    content = <strong>{content}</strong>
+                  } else if (mark.type === "italic") {
+                    content = <em>{content}</em>
+                  } else if (mark.type === "underline") {
+                    content = <u>{content}</u>
+                  }
+                })
               }
-              return null
+
+              return <span key={childIndex}>{content}</span>
             })}
           </p>
+        )
+      } else if (block.type === "h1") {
+        const text = blockAny.children?.map((c: any) => c.text || "").join("") || ""
+        return (
+          <h1 key={index} className="mb-4 mt-6 text-2xl font-bold text-slate-900">
+            {text}
+          </h1>
+        )
+      } else if (block.type === "h2") {
+        const text = blockAny.children?.map((c: any) => c.text || "").join("") || ""
+        return (
+          <h2 key={index} className="mb-4 mt-6 text-2xl font-bold text-slate-900">
+            {text}
+          </h2>
+        )
+      } else if (block.type === "h3") {
+        const text = blockAny.children?.map((c: any) => c.text || "").join("") || ""
+        return (
+          <h3 key={index} className="mb-4 mt-6 text-xl font-bold text-slate-900">
+            {text}
+          </h3>
+        )
+      } else if (block.type === "heading") {
+        const level = blockAny.level || 1
+        const text = blockAny.children?.map((c: any) => c.text || "").join("") || ""
+        const headingClass = "mb-4 mt-6 font-bold text-slate-900"
+        if (level === 1) {
+          return <h1 key={index} className={`${headingClass} text-2xl`}>{text}</h1>
+        } else if (level === 2) {
+          return <h2 key={index} className={`${headingClass} text-2xl`}>{text}</h2>
+        } else if (level === 3) {
+          return <h3 key={index} className={`${headingClass} text-xl`}>{text}</h3>
+        }
+        return <h2 key={index} className={`${headingClass} text-2xl`}>{text}</h2>
+      } else if (block.type === "list-item") {
+        const text = blockAny.children?.map((c: any) => c.text || "").join("") || ""
+        return (
+          <li key={index} className="mb-2 text-lg leading-relaxed text-slate-700">
+            {text}
+          </li>
+        )
+      } else if (block.type === "image") {
+        const img = blockAny.image || blockAny
+        const url = img?.url
+        const alt = img?.alternativeText || img?.alt || ""
+        if (!url) return null
+        return (
+          <span key={index} className="my-4 block">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={url}
+              alt={alt}
+              className="max-w-full h-auto rounded-lg my-4"
+            />
+          </span>
         )
       }
       return null
