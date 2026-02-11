@@ -49,14 +49,15 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    if (!Array.isArray(uploaded) || !uploaded[0] || !uploaded[0].id) {
+    const rawList = Array.isArray(uploaded) ? uploaded : uploaded?.data != null ? [uploaded.data] : []
+    const firstFile = rawList[0]
+    const imageId = firstFile?.documentId ?? firstFile?.id
+    if (!firstFile || (imageId == null && imageId !== 0)) {
       return NextResponse.json(
-        { error: "Image upload succeeded but no image ID returned" },
+        { error: "Image upload succeeded but no image ID/documentId returned" },
         { status: 500 }
       )
     }
-
-    const imageId = uploaded[0].id
 
     /* ======================
        3️⃣ TAGS
@@ -83,13 +84,39 @@ export async function POST(req: NextRequest) {
     }
 
     /* ======================
-       5️⃣ CREATE CONTENT
+       5️⃣ BODY
+       ====================== */
+    const bodyRaw = formData.get("body") as string
+    let body
+
+    // console.log("Body raw:", bodyRaw);
+    // console.log("Body raw type:", JSON.parse(bodyRaw));
+    
+    try {
+      body = bodyRaw ? JSON.parse(bodyRaw) : []
+      console.log("Body:", body)
+      // Validate it's an array
+      if (!Array.isArray(body)) {
+        return NextResponse.json(
+          { error: "Body must be an array" },
+          { status: 400 }
+        )
+      }
+    } catch (e) {
+      return NextResponse.json(
+        { error: "Invalid body format" },
+        { status: 400 }
+      )
+    }
+
+    /* ======================
+       6️⃣ CREATE CONTENT
        ====================== */
     const payload = {
       data: {
         title: formData.get("title"),
         slug: formData.get("slug"),
-        body: formData.get("body"),
+        body: body, // Send as JSON string
         excerpt: formData.get("excerpt"),
         coverImage: imageId,
         MetaData: metadata,

@@ -1,6 +1,7 @@
 import { fetchArticleByDocumentId } from "@/lib/api"
 import { notFound } from "next/navigation"
 import EditArticleForm from "./EditArticleForm"
+import { contentBlocksToHtml } from "@/lib/content-blocks"
 
 interface EditPageProps {
   params: Promise<{ documentId: string }>
@@ -14,19 +15,8 @@ export default async function EditPage({ params }: EditPageProps) {
     notFound()
   }
 
-  // Extract body text from content blocks
-  const bodyText = article.body
-    ? article.body
-        .map((block) => {
-          if (block.type === "paragraph" && block.children) {
-            return block.children
-              .map((child) => child.text)
-              .join("")
-          }
-          return ""
-        })
-        .join("\n\n")
-    : ""
+  // Convert content blocks to HTML for the rich text editor
+  const bodyHtml = article.body ? contentBlocksToHtml(article.body) : ""
 
   // Format date for datetime-local input
   const formatDateForInput = (dateString: string | Date | undefined) => {
@@ -52,7 +42,8 @@ export default async function EditPage({ params }: EditPageProps) {
     title: article.title,
     slug: article.slug,
     excerpt: article.excerpt || "",
-    body: bodyText,
+    body: bodyHtml,
+    bodyBlocks: article.body || [],
     author: article.metadata?.author || "",
     category: article.metadata?.category || "",
     published: formatDateForInput(article.metadata?.published || article.publishedAt),
