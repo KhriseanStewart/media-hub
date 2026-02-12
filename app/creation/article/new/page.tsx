@@ -3,8 +3,6 @@
 import { useState } from "react"
 import { Upload, X, Tag, Calendar, User, FileText, ImageIcon } from "lucide-react"
 import { useRouter } from "next/navigation"
-import RichTextEditor from "@/components/rich-text-editor"
-import { htmlToContentBlocks } from "@/lib/content-blocks"
 
 const API_URL = "/api/article/create"
 
@@ -14,13 +12,11 @@ export default function CreateArticlePage() {
   // Form state
   const [title, setTitle] = useState("")
   const [slug, setSlug] = useState("")
-  const [slugManuallyEdited, setSlugManuallyEdited] = useState(false)
   const [excerpt, setExcerpt] = useState("")
   const [author, setAuthor] = useState("")
   const [category, setCategory] = useState("")
   const [published, setPublished] = useState("")
   const [body, setBody] = useState("")
-  const [bodyImageMap, setBodyImageMap] = useState<Record<string, any>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
   
   // Tags state
@@ -30,31 +26,6 @@ export default function CreateArticlePage() {
   // Image state
   const [coverImage, setCoverImage] = useState<File | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string>("")
-
-  // Convert title to slug format
-  const titleToSlug = (text: string) => {
-    return text
-      .toLowerCase()
-      .trim()
-      .replace(/[^\w\s-]/g, "") // Remove special characters
-      .replace(/\s+/g, "-") // Replace spaces with hyphens
-      .replace(/-+/g, "-") // Replace multiple hyphens with single hyphen
-      .replace(/^-+|-+$/g, "") // Remove leading/trailing hyphens
-  }
-
-  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newTitle = e.target.value
-    setTitle(newTitle)
-    // Auto-generate slug only if it hasn't been manually edited
-    if (!slugManuallyEdited) {
-      setSlug(titleToSlug(newTitle))
-    }
-  }
-
-  const handleSlugChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSlug(e.target.value)
-    setSlugManuallyEdited(true)
-  }
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -108,7 +79,6 @@ export default function CreateArticlePage() {
     setSlug("")
     setExcerpt("")
     setBody("")
-    setBodyImageMap({})
     setAuthor("")
     setCategory("")
     setPublished("")
@@ -143,8 +113,20 @@ export default function CreateArticlePage() {
         published: publishedDate,
       }
 
-      // Convert HTML from rich text editor to Strapi ContentBlock format (bodyImageMap supplies full media for images)
-      const bodyArray = body ? htmlToContentBlocks(body, bodyImageMap) : []
+      // Prepare body in the array format Strapi expects
+      const bodyArray = body
+        ? [
+            {
+              type: "paragraph",
+              children: [
+                {
+                  type: "text",
+                  text: body,
+                },
+              ],
+            },
+          ]
+        : []
 
       // Create FormData matching the API structure
       const formData = new FormData()
@@ -245,7 +227,7 @@ export default function CreateArticlePage() {
                 placeholder="Enter a compelling title..."
                 className="w-full border border-slate-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow text-slate-900 placeholder:text-slate-400"
                 value={title}
-                onChange={handleTitleChange}
+                onChange={(e) => setTitle(e.target.value)}
               />
             </div>
 
@@ -259,7 +241,7 @@ export default function CreateArticlePage() {
                 placeholder="article-url-slug"
                 className="w-full border border-slate-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow text-slate-900 placeholder:text-slate-400 font-mono text-sm"
                 value={slug}
-                onChange={handleSlugChange}
+                onChange={(e) => setSlug(e.target.value)}
               />
             </div>
           </div>
@@ -284,11 +266,12 @@ export default function CreateArticlePage() {
             <label className="block text-sm font-semibold text-slate-700 mb-2">
               Article Content
             </label>
-            <RichTextEditor
-              value={body}
-              onChange={setBody}
+            <textarea
               placeholder="Write your article here..."
-              onImageUploaded={(url, media) => setBodyImageMap((prev) => ({ ...prev, [url]: media }))}
+              className="w-full border border-slate-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow text-slate-900 placeholder:text-slate-400 resize-none"
+              rows={12}
+              value={body}
+              onChange={(e) => setBody(e.target.value)}
             />
           </div>
 

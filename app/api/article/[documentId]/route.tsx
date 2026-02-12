@@ -89,9 +89,7 @@ export async function PUT(
       }
 
       const uploaded = await uploadRes.json()
-      const rawList = Array.isArray(uploaded) ? uploaded : uploaded?.data != null ? [uploaded.data] : []
-      const firstFile = rawList[0]
-      imageId = firstFile?.documentId ?? firstFile?.id
+      imageId = uploaded[0]?.id
     }
 
     /* ======================
@@ -119,27 +117,6 @@ export async function PUT(
     }
 
     /* ======================
-       BODY
-       ====================== */
-    const bodyRaw = formData.get("body") as string
-    let body
-    try {
-      body = bodyRaw ? JSON.parse(bodyRaw) : []
-      // Validate it's an array
-      if (!Array.isArray(body)) {
-        return NextResponse.json(
-          { error: "Body must be an array" },
-          { status: 400 }
-        )
-      }
-    } catch (e) {
-      return NextResponse.json(
-        { error: "Invalid body format" },
-        { status: 400 }
-      )
-    }
-
-    /* ======================
        UPDATE PAYLOAD
        ====================== */
     const payload: any = {
@@ -147,7 +124,7 @@ export async function PUT(
         title: formData.get("title"),
         slug: formData.get("slug"),
         excerpt: formData.get("excerpt"),
-        body: body,
+        body: formData.get("body"),
         MetaData: metadata,
         tags: tags,
       },

@@ -1,7 +1,6 @@
 import { fetchArticle, fetchContent } from "@/lib/api"
 import { ContentGrid } from "@/components/content-grid"
 import ArticleGrid from "@/components/Article-grid";
-import { GallerySection } from "@/components/gallery-section"
 
 export default async function HomePage() {
   const content = await fetchContent();
@@ -22,8 +21,6 @@ export default async function HomePage() {
       <br />
       <br />
       <ArticleGrid article={article} />
-
-      <GallerySection />
     </main>
   )
 }
