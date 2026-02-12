@@ -19,12 +19,6 @@ export function Header() {
               Add post
             </Link>
             <Link
-              href="/galleries/new"
-              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-            >
-              Add Gallery
-            </Link>
-            <Link
               href="/creation/article/new"
               className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
             >

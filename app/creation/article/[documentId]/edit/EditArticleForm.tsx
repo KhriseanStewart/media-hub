@@ -3,15 +3,12 @@
 import { useState, useEffect } from "react"
 import { Upload, X, Tag, Calendar, User, FileText, ImageIcon } from "lucide-react"
 import { useRouter } from "next/navigation"
-import RichTextEditor from "@/components/rich-text-editor"
-import { htmlToContentBlocks } from "@/lib/content-blocks"
 
 interface ArticleData {
   title: string
   slug: string
   excerpt: string
   body: string
-  bodyBlocks?: any[]
   author: string
   category: string
   published: string
@@ -30,22 +27,11 @@ export default function EditArticleForm({ documentId, article }: EditArticleForm
   // Form state
   const [title, setTitle] = useState(article.title)
   const [slug, setSlug] = useState(article.slug)
-  const [slugManuallyEdited, setSlugManuallyEdited] = useState(true) // Start as true since it's pre-filled
   const [excerpt, setExcerpt] = useState(article.excerpt)
   const [author, setAuthor] = useState(article.author)
   const [category, setCategory] = useState(article.category)
   const [published, setPublished] = useState(article.published)
   const [body, setBody] = useState(article.body)
-  const [bodyImageMap, setBodyImageMap] = useState<Record<string, any>>(() => {
-    const map: Record<string, any> = {}
-    const blocks = article.bodyBlocks || []
-    blocks.forEach((block: any) => {
-      if (block.type === "image" && block.image && block.image.url) {
-        map[block.image.url] = block.image
-      }
-    })
-    return map
-  })
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   // Tags state
@@ -55,31 +41,6 @@ export default function EditArticleForm({ documentId, article }: EditArticleForm
   // Image state
   const [coverImage, setCoverImage] = useState<File | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string>(article.coverImageUrl || "")
-
-  // Convert title to slug format
-  const titleToSlug = (text: string) => {
-    return text
-      .toLowerCase()
-      .trim()
-      .replace(/[^\w\s-]/g, "") // Remove special characters
-      .replace(/\s+/g, "-") // Replace spaces with hyphens
-      .replace(/-+/g, "-") // Replace multiple hyphens with single hyphen
-      .replace(/^-+|-+$/g, "") // Remove leading/trailing hyphens
-  }
-
-  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newTitle = e.target.value
-    setTitle(newTitle)
-    // Auto-generate slug only if it hasn't been manually edited
-    if (!slugManuallyEdited) {
-      setSlug(titleToSlug(newTitle))
-    }
-  }
-
-  const handleSlugChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSlug(e.target.value)
-    setSlugManuallyEdited(true)
-  }
 
   useEffect(() => {
     // Cleanup preview URL on unmount
@@ -162,8 +123,20 @@ export default function EditArticleForm({ documentId, article }: EditArticleForm
         published: publishedDate,
       }
 
-      // Convert HTML from rich text editor to Strapi ContentBlock format
-      const bodyArray = body ? htmlToContentBlocks(body, bodyImageMap) : []
+      // Prepare body in the array format Strapi expects
+      const bodyArray = body
+        ? [
+            {
+              type: "paragraph",
+              children: [
+                {
+                  type: "text",
+                  text: body,
+                },
+              ],
+            },
+          ]
+        : []
 
       // Create FormData matching the API structure
       const formData = new FormData()
@@ -271,7 +244,7 @@ export default function EditArticleForm({ documentId, article }: EditArticleForm
                 placeholder="Enter a compelling title..."
                 className="w-full border border-slate-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow text-slate-900 placeholder:text-slate-400"
                 value={title}
-                onChange={handleTitleChange}
+                onChange={(e) => setTitle(e.target.value)}
               />
             </div>
 
@@ -285,7 +258,7 @@ export default function EditArticleForm({ documentId, article }: EditArticleForm
                 placeholder="article-url-slug"
                 className="w-full border border-slate-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow text-slate-900 placeholder:text-slate-400 font-mono text-sm"
                 value={slug}
-                onChange={handleSlugChange}
+                onChange={(e) => setSlug(e.target.value)}
               />
             </div>
           </div>
@@ -310,11 +283,12 @@ export default function EditArticleForm({ documentId, article }: EditArticleForm
             <label className="block text-sm font-semibold text-slate-700 mb-2">
               Article Content
             </label>
-            <RichTextEditor
-              value={body}
-              onChange={setBody}
+            <textarea
               placeholder="Write your article here..."
-              onImageUploaded={(url, media) => setBodyImageMap((prev) => ({ ...prev, [url]: media }))}
+              className="w-full border border-slate-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow text-slate-900 placeholder:text-slate-400 resize-none"
+              rows={12}
+              value={body}
+              onChange={(e) => setBody(e.target.value)}
             />
           </div>
 
